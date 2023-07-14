@@ -18,8 +18,7 @@ class MovieController {
     // get movie by page
     const trendingMoviesByPage = getItemsByPage(trendingMovies, page || 1);
 
-    res.json({
-      status: 200,
+    res.status(200).json({
       success: true,
       message: "Tải movie trending thành công!",
       results:
@@ -27,10 +26,11 @@ class MovieController {
           ? trendingMoviesByPage
           : "Không còn movies nào cả !!!",
       page: page || 1,
-      total_pages: trendingMovies.length,
+      total_pages: Math.floor(trendingMovies.length / 20),
     });
   }
 
+  /*---------------------------------------------------------------- */
   // get movie top rate
   getMoviesTopRate(req, res) {
     const page = req.query.page;
@@ -41,8 +41,7 @@ class MovieController {
     // get movie by page
     const topRateMoviesByPage = getItemsByPage(topRateMovies, page || 1);
 
-    res.json({
-      status: 200,
+    res.status(200).json({
       success: true,
       message: "Tải movie high rating thành công!",
       results:
@@ -50,10 +49,11 @@ class MovieController {
           ? topRateMoviesByPage
           : "Không còn movies nào cả !!!",
       page: page || 1,
-      total_pages: topRateMovies.length,
+      total_pages: Math.floor(topRateMovies.length / 20),
     });
   }
 
+  /*---------------------------------------------------------------- */
   // get movie
   getMoviesByGenre(req, res) {
     const page = req.query.page;
@@ -62,8 +62,7 @@ class MovieController {
 
     // has no param
     if (!genreId)
-      return res.json({
-        status: 400,
+      return res.status(400).json({
         success: false,
         message: "Not found gerne param",
       });
@@ -78,9 +77,8 @@ class MovieController {
 
     // Invalid genre
     if (!genreMovie.id && !genreMovie.name) {
-      return res.json({
-        status: 400,
-        success: false,
+      return res.status(400).json({
+        success: true,
         message: "Not found that gerne id",
       });
     }
@@ -92,17 +90,17 @@ class MovieController {
     // get movi by page
     const moviesByGenreByPage = getItemsByPage(moviesByGenre, page || 1);
 
-    res.json({
-      status: 200,
+    res.status(200).json({
       success: true,
       message: "Tải movies thành công!",
       results: moviesByGenreByPage,
       page: page || 1,
-      total_pages: moviesByGenre.length,
+      total_pages: Math.floor(moviesByGenre.length / 20),
       genre_name: genreMovie.name,
     });
   }
 
+  /*---------------------------------------------------------------- */
   // get trailer
   getVideoMovie(req, res) {
     const movieId = req.params.film_id;
@@ -110,8 +108,7 @@ class MovieController {
 
     // has no param
     if (!movieId)
-      return res.json({
-        status: 400,
+      return res.status(400).json({
         success: false,
         message: "Not found film_id param",
       });
@@ -130,38 +127,151 @@ class MovieController {
       );
     });
 
-    if (trailer.length === 0)
-      return res.json({
-        status: 404,
+    if (trailer?.length === 0 || !trailer)
+      return res.status(404).json({
         success: true,
         message: "Not found video",
       });
 
-    res.json({
-      status: 200,
+    res.status(200).json({
       success: true,
       message: "Tải video thành công!",
       results: trailer[0],
     });
   }
 
+  /*---------------------------------------------------------------- */
   // search movie
   searchMovies(req, res) {
     const keyword = req.params.keyword;
 
-    const moviesBySearch = movieList.map((movie) => {
-      // return movie.name.include(keyword.toLowerCase.split(""));
-    });
+    const moviesBySearch = movieList.filter((movie) =>
+      movie.name.toLowerCase().includes(keyword.toLowerCase())
+    );
 
-    res.json({
-      status: 200,
+    // invalid keyword
+    if (moviesBySearch.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: "Not found keyword param",
+      });
+    }
+
+    res.status(200).json({
       success: true,
       message: "Tải movies thành công!",
-      // results: moviesByGenreByPage,
-      // page: page || 1,
-      // total_pages: moviesByGenre.length,
-      // genre_name: genreMovie.name,
+      results: moviesBySearch,
     });
+  }
+
+  /*---------------------------------------------------------------- */
+  // searchByOption
+  searchMoviesByOption(req, res) {
+    const year = req.query.year;
+    const genre = req.query.genre;
+    const media_type = req.query.media_type;
+    const language = req.query.language;
+
+    const genreMovie = genreList.find((movie) => {
+      return movie.name === genre;
+    });
+
+    // year movies
+    if (year) {
+      const moviesSoft = movieList.filter((movie) => {
+        return movie.release_date.split("-")[0] === year;
+      });
+
+      if (moviesSoft.length === 0) {
+        res.status(200).json({
+          success: false,
+          message: `Store have no movies for the year ${year}`,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Tải movie thành công",
+        results: moviesSoft,
+      });
+      return;
+    }
+
+    // genre movies
+    if (genre) {
+      const moviesSoft = movieList.filter((movie) => {
+        return movie.genre_ids[0] === genreMovie.id;
+      });
+
+      if (moviesSoft.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: `Store have no movies for ${genre} genre`,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Tải movie thành công",
+        results: moviesSoft,
+      });
+      return;
+    }
+
+    // media_type movies
+    if (media_type) {
+      if (media_type === "all") {
+        const moviesSoft = [...movieList];
+        res.status(200).json({
+          success: true,
+          message: "Tải movie thành công",
+          results: moviesSoft,
+        });
+        return;
+      } else {
+        const moviesSoft = movieList.filter((movie) => {
+          return movie.media_type === media_type;
+        });
+
+        if (moviesSoft.length === 0) {
+          res.status(200).json({
+            success: false,
+            message: `Store have no movies for ${media_type} media type`,
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          message: "Tải movie thành công",
+          results: moviesSoft,
+        });
+      }
+      return;
+    }
+
+    // language movies
+    if (language) {
+      const moviesSoft = movieList.filter((movie) => {
+        return movie.original_language === language;
+      });
+
+      if (moviesSoft.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: `Store have no movies for ${language} language`,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Tải movie thành công",
+        results: moviesSoft,
+      });
+      return;
+    }
   }
 }
 
