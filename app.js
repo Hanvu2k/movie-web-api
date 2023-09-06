@@ -4,7 +4,7 @@ const app = express();
 const port = 8080;
 const route = require("./routes");
 const corsOptions = {
-  origin: "*",
+  origin: ["https://astounding-malasada-edc3c9.netlify.app"],
 };
 
 app.use(express.json({ limit: "50mb" }));
